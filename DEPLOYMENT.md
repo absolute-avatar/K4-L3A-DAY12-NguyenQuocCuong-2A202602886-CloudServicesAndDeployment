@@ -10,17 +10,17 @@
 
 | Mục | Nội dung |
 |-----|----------|
-| Họ và tên | (điền họ tên) |
-| Mã học viên | (điền mã học viên) |
-| Repo | (điền link repo K4-L3A-DAY12-HoVaTen-MSSV-CloudServicesAndDeployment) |
+| Họ và tên | Nguyễn Quốc Cường |
+| Mã học viên | 2A202602886 |
+| Repo | https://github.com/absolute-avatar/K4-L3A-DAY12-NguyenQuocCuong-2A202602886-CloudServicesAndDeployment |
 
 ## Service
 
 | Mục | Nội dung |
 |-----|----------|
-| Public URL | https://TODO-thay-bang-url-that.up.railway.app |
-| Platform | Railway / Render / Cloud Run — (điền platform bạn dùng) |
-| Ngày deploy | (điền ngày) |
+| Public URL | https://day12-agent-x4mv.onrender.com |
+| Platform | Render |
+| Ngày deploy | 28/9/2026 |
 
 ## Biến Môi Trường Đã Set Trên Cloud
 
@@ -30,7 +30,7 @@ Ghi tên biến và **nguồn giá trị**, không ghi giá trị:
 |------|--------|---------|
 | `PORT` | ✅ | platform tự gán |
 | `AGENT_API_KEY` | ✅ | đặt trong dashboard, không nằm trong repo |
-| `REDIS_URL` | ✅ | (điền: Redis add-on của platform / Upstash / ...) |
+| `REDIS_URL` | ✅ | Render Key Value service `day12-redis`, tự động cấp từ `connectionString` qua `render.yaml` |
 | `RATE_LIMIT_PER_MINUTE` | ✅ | 10 |
 | `MONTHLY_BUDGET_USD` | ✅ | 10.0 |
 | `LOG_LEVEL` | ✅ | INFO |
@@ -41,18 +41,18 @@ Thay `<URL>` bằng Public URL ở trên:
 
 ```bash
 # 1. Liveness — mong đợi 200 {"status":"ok"}
-curl -i <URL>/health
+curl -i https://day12-agent-x4mv.onrender.com/health
 
 # 2. Readiness — mong đợi 200 {"status":"ready"} (đã nối được Redis)
-curl -i <URL>/ready
+curl -i https://day12-agent-x4mv.onrender.com/ready
 
 # 3. Không có API key — mong đợi 401
-curl -i -X POST <URL>/ask \
+curl -i -X POST https://day12-agent-x4mv.onrender.com/ask \
   -H "Content-Type: application/json" \
   -d '{"question":"Hello"}'
 
 # 4. Có API key — mong đợi 200 kèm câu trả lời
-curl -i -X POST <URL>/ask \
+curl -i -X POST https://day12-agent-x4mv.onrender.com/ask \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $AGENT_API_KEY" \
   -H "X-User-Id: sv-test" \
@@ -60,7 +60,7 @@ curl -i -X POST <URL>/ask \
 
 # 5. Rate limit — gọi 15 lần, những lần cuối phải trả 429
 for i in $(seq 1 15); do
-  curl -s -o /dev/null -w "%{http_code} " -X POST <URL>/ask \
+  curl -s -o /dev/null -w "%{http_code} " -X POST https://day12-agent-x4mv.onrender.com/ask \
     -H "Content-Type: application/json" \
     -H "X-API-Key: $AGENT_API_KEY" \
     -H "X-User-Id: sv-test" \
@@ -73,7 +73,84 @@ done; echo
 Dán output của các lệnh trên vào đây:
 
 ```
-(điền output)
+$ curl -i $URL/health
+HTTP/1.1 200 OK
+Date: Mon, 28 Sep 2026 09:43:01 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+cf-cache-status: DYNAMIC
+rndr-id: 87a39853-35fa-4500
+Server: cloudflare
+vary: Accept-Encoding
+x-render-origin-server: uvicorn
+CF-RAY: a421cd28f9888359-SIN
+alt-svc: h3=":443"; ma=86400
+
+{"status":"ok","service":"day12-agent","version":"1.0.0"}
+
+
+$ curl -i $URL/ready
+HTTP/1.1 200 OK
+Date: Mon, 28 Sep 2026 09:43:07 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+cf-cache-status: DYNAMIC
+rndr-id: 22cd9ab7-080a-4e72
+Server: cloudflare
+vary: Accept-Encoding
+x-render-origin-server: uvicorn
+CF-RAY: a421cd4c9f3afcfe-SIN
+alt-svc: h3=":443"; ma=86400
+
+
+$ curl -i -X POST https://day12-agent-x4mv.onrender.com/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question":"Hello"}'
+HTTP/1.1 401 Unauthorized
+Date: Mon, 28 Sep 2026 09:46:12 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+cf-cache-status: DYNAMIC
+rndr-id: ced0dd5d-0423-4f12
+Server: cloudflare
+vary: Accept-Encoding
+x-render-origin-server: uvicorn
+CF-RAY: a421d1d06d6b09bc-HKG
+alt-svc: h3=":443"; ma=86400
+
+
+$ curl -i "$URL/ask" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: ${AGENT_API_KEY}" \
+  -H "X-User-Id: sv-test" \
+  --data-raw '{"question":"Deploy la gi?"}'
+HTTP/1.1 200 OK
+Date: Mon, 28 Sep 2026 09:55:16 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+cf-cache-status: DYNAMIC
+rndr-id: 32010181-a983-410f
+Server: cloudflare
+vary: Accept-Encoding
+x-render-origin-server: uvicorn
+CF-RAY: a421df1c38fcd47d-SIN
+alt-svc: h3=":443"; ma=86400
+
+{"answer":"Ngắn gọn: Deploy la gi phụ thuộc vào ba yếu tố — cấu hình qua biến môi trường, health check để orchestrator biết trạng thái, và giới hạn tài nguyên.","user_id":"sv-test","history_length":0,"cost_usd":2.265e-05,"tokens":{"in":3,"out":37}}
+
+
+for i in $(seq 1 15); do
+  curl -s -o /dev/null -w "%{http_code} " -X POST https://day12-agent-x4mv.onrender.com/ask \
+    -H "Content-Type: application/json" \
+    -H "X-API-Key: $AGENT_API_KEY" \
+    -H "X-User-Id: sv-test" \
+    -d '{"question":"test"}'
+done; echo
+200 200 200 200 200 200 200 200 200 200 429 429 429 429 429
 ```
 
 ## Ảnh Chụp Màn Hình
