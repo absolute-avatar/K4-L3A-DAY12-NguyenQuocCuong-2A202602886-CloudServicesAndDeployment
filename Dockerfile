@@ -21,14 +21,47 @@
 #            docker images day12-agent:prod     # xem dung lượng
 # ═══════════════════════════════════════════════════════════════════
 
-FROM python:3.11
+# ── Nội dung cũ (giữ lại để đối chiếu) ─────────────────────────────
+# FROM python:3.11
+#
+# WORKDIR /app
+#
+# COPY . .
+#
+# RUN pip install -r requirements.txt
+#
+# EXPOSE 8000
+#
+# CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# ── Stage 1: cài và biên dịch dependency ────────────────────────────
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# ── Stage 2: image runtime gọn nhẹ ──────────────────────────────────
+FROM python:3.11-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+RUN useradd --create-home --uid 10001 appuser
 
 WORKDIR /app
 
-COPY . .
+COPY --from=builder /install /usr/local
+COPY app ./app
+COPY utils ./utils
 
-RUN pip install -r requirements.txt
+USER appuser
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health').read()" || exit 1
+
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
